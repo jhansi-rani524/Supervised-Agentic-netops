@@ -1,0 +1,104 @@
+routers:
+
+   R1:
+    device_type: cisco_ios
+    host: 192.168.160.132
+    username: jhansi
+    password: mathematics322@
+    secret: mathematics322@
+    asn: 100
+    
+    interfaces:
+      - name: g2/0
+        ip: 192.168.12.1
+        mask: 255.255.255.0
+      - name: loopback0  
+        ip: 1.1.1.1
+        mask: 255.255.255.255
+
+    neighbors: 
+      - ip: 192.168.12.2
+        remote_as: 100
+         
+    networks:
+      - 1.1.1.1
+
+   R2:
+    device_type: cisco_ios
+    host: 192.168.160.133
+    username: jhansi
+    password: mathematics322@
+    secret: mathematics322@
+    asn: 100
+
+    interfaces:
+      - name: g1/0
+        ip: 192.168.12.2
+        mask: 255.255.255.0
+      - name: g3/0
+        ip: 192.168.23.2
+        mask: 255.255.255.0  
+      - name: loopback0  
+        ip: 2.2.2.2
+        mask: 255.255.255.255
+    neighbors: 
+      - ip: 192.168.12.1
+        remote_as: 100
+      - ip: 192.168.23.3
+        remote_as: 100 
+         
+    networks:
+      - 2.2.2.2
+
+
+   R3:
+    device_type: cisco_ios
+    host: 192.168.160.134
+    username: jhansi
+    password: mathematics322@
+    secret: mathematics322@
+    asn: 100
+
+    interfaces:
+      - name: g4/0
+        ip: 192.168.23.3
+        mask: 255.255.255.0
+      - name: g1/0
+        ip: 192.168.34.3
+        mask: 255.255.255.0
+      - name: loopback0  
+        ip: 3.3.3.3
+        mask: 255.255.255.255     
+    neighbors: 
+      - ip: 192.168.23.2
+        remote_as: 100
+      - ip: 192.168.34.4
+        remote_as: 100
+          
+    networks:
+      - 3.3.3.3
+
+   R4:
+    device_type: cisco_ios
+    host: 192.168.160.135
+    username: jhansi
+    password: mathematics322@
+    secret: mathematics322@
+    asn: 100
+
+    interfaces:
+      - name: g2/0
+        ip: 192.168.34.4
+        mask: 255.255.255.0
+      - name: loopback0  
+        ip: 4.4.4.4
+        mask: 255.255.255.255  
+    
+    neighbors: 
+      - ip: 192.168.34.3
+        remote_as: 100
+       
+    networks:
+      - 4.4.4.4           
+
+
