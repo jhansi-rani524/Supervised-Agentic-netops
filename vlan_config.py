@@ -18,9 +18,9 @@ for ip, interface in device_interfaces.items():
     switch = {
         "device_type": "cisco_ios",
         "host": ip,
-        "username": "jhansi",
-        "password": "mathematics322@",
-        "secret": "mathematics322@",
+        "username": "your_username",
+        "password": "your_password_here",
+        "secret": "your_password_here",
         "global_delay_factor": 2,
         "fast_cli": False
     }

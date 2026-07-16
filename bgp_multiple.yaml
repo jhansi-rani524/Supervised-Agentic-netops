@@ -4,9 +4,9 @@ devices:
  -  name: R1
     device_type: cisco_ios
     host: 192.168.160.130
-    username: jhansi
-    password: mathematics322@
-    secret: mathematics322@
+    username: your_username
+    password: your_password_here
+    secret: your_password_here
     asn: 100
     
   
@@ -15,9 +15,9 @@ devices:
 
   - name: R1
     host: 192.168.12.130
-    username: admin
-    password: cisco123
-    secret: cisco123
+    username: your_username
+    password: your_password_here
+    secret: your_password_here
     device_type: cisco_ios
     asn: 100
     neighbors:

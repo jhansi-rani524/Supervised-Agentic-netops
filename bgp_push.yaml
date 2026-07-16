@@ -3,9 +3,9 @@ routers:
    R1:
     device_type: cisco_ios
     host: 192.168.160.132
-    username: jhansi
-    password: mathematics322@
-    secret: mathematics322@
+    username: your_username
+    password: your_password_here
+    secret: your_password_here
     asn: 100
     
     interfaces:
@@ -23,9 +23,9 @@ routers:
    R2:
     device_type: cisco_ios
     host: 192.168.160.133
-    username: jhansi
-    password: mathematics322@
-    secret: mathematics322@
+    username: your_username
+    password: your_password_here
+    secret: your_password_here
     asn: 100
 
     interfaces:
@@ -48,9 +48,9 @@ routers:
    R3:
     device_type: cisco_ios
     host: 192.168.160.134
-    username: jhansi
-    password: mathematics322@
-    secret: mathematics322@
+    username: your_username
+    password: your_password_here
+    secret: your_password_here
     asn: 100
 
     interfaces:
@@ -72,9 +72,9 @@ routers:
    R4:
     device_type: cisco_ios
     host: 192.168.160.135
-    username: jhansi
-    password: mathematics322@
-    secret: mathematics322@
+    username: your_username
+    password: your_password_here
+    secret: your_password_here
     asn: 100
 
     interfaces:
