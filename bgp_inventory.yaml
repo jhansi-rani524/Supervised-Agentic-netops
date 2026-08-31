@@ -3,15 +3,15 @@ routers:
    R1:
     device_type: cisco_ios
     host: 192.168.160.132
-    username: your_username
-    password: your_password_here
-    secret: your_password_here
     asn: 100
     
     interfaces:
       - name: g2/0
         ip: 192.168.12.1
         mask: 255.255.255.0
+      - name: loopback0  
+        ip: 1.1.1.1
+        mask: 255.255.255.255
 
     neighbors: 
       - ip: 192.168.12.2
@@ -23,9 +23,6 @@ routers:
    R2:
     device_type: cisco_ios
     host: 192.168.160.133
-    username: your_username
-    password: your_password_here
-    secret: your_password_here
     asn: 100
 
     interfaces:
@@ -35,12 +32,15 @@ routers:
       - name: g3/0
         ip: 192.168.23.2
         mask: 255.255.255.0  
+      - name: loopback0  
+        ip: 2.2.2.2
+        mask: 255.255.255.255
     neighbors: 
       - ip: 192.168.12.1
         remote_as: 100
       - ip: 192.168.23.3
         remote_as: 100 
-          
+         
     networks:
       - 2.2.2.2
 
@@ -48,9 +48,6 @@ routers:
    R3:
     device_type: cisco_ios
     host: 192.168.160.134
-    username: your_username
-    password: your_password_here
-    secret: your_password_here
     asn: 100
 
     interfaces:
@@ -59,33 +56,36 @@ routers:
         mask: 255.255.255.0
       - name: g1/0
         ip: 192.168.34.3
-        mask: 255.255.255.0   
+        mask: 255.255.255.0
+      - name: loopback0  
+        ip: 3.3.3.3
+        mask: 255.255.255.255     
     neighbors: 
       - ip: 192.168.23.2
         remote_as: 100
       - ip: 192.168.34.4
         remote_as: 100
-         
+          
     networks:
       - 3.3.3.3
 
    R4:
     device_type: cisco_ios
     host: 192.168.160.135
-    username: your_username
-    password: your_password_here
-    secret: your_password_here
     asn: 100
 
     interfaces:
-      - name: g4/0
+      - name: g2/0
         ip: 192.168.34.4
         mask: 255.255.255.0
+      - name: loopback0  
+        ip: 4.4.4.4
+        mask: 255.255.255.255  
     
     neighbors: 
       - ip: 192.168.34.3
         remote_as: 100
-      
+       
     networks:
       - 4.4.4.4           
 

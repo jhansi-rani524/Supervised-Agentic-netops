@@ -4,6 +4,34 @@ Python scripts that automate the configuration, deployment, and verification of 
 
 Instead of manually console-ing into each router to configure interfaces, BGP neighbors, or OSPF areas, these scripts read a router's config from YAML and push it over SSH, then pull back verification output (`show ip bgp summary`, `show ip ospf neighbor`, etc.) to confirm it actually worked.
 
+<br>
+
+## Architecture
+
+<!--
+  Drop your architecture screenshot in a folder like `docs/images/architecture.png`,
+  commit it, then point the line below at it. Relative paths work once the image
+  is committed to the repo.
+-->
+![Architecture diagram](docs/images/architecture.png)
+
+<br>
+
+## Skills / Tech Stack
+
+<!--
+  Swap these for your own badges, or just paste a screenshot the same way as above:
+  ![Skills](docs/images/skills.png)
+-->
+![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
+![Netmiko](https://img.shields.io/badge/Netmiko-SSH%20Automation-informational)
+![Cisco IOS](https://img.shields.io/badge/Cisco-IOS-1BA0D7?logo=cisco&logoColor=white)
+![BGP](https://img.shields.io/badge/Protocol-BGP-orange)
+![OSPF](https://img.shields.io/badge/Protocol-OSPF-orange)
+![YAML](https://img.shields.io/badge/Config-YAML-CB171E)
+
+<br>
+
 ## Why this exists
 
 Manually configuring routing protocols across a multi-router lab is repetitive and error-prone — the same `interface` / `router bgp` / `neighbor` blocks, typed by hand, on every device. This project treats router configuration as data (YAML) instead of manual CLI steps, so a topology of 4+ routers can be brought up, verified, and torn down consistently and repeatably.

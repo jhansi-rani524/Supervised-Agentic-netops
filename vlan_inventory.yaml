@@ -1,0 +1,18 @@
+switches:
+  IOU1:
+    host: 192.168.160.136
+    interface: Ethernet0/0
+    vlan_id: 10
+    vlan_name: STUDENTS
+
+  IOU2:
+    host: 192.168.160.137
+    interface: Ethernet0/0
+    vlan_id: 20
+    vlan_name: STAFF
+
+  IOU3:
+    host: 192.168.160.138
+    interface: Ethernet0/0
+    vlan_id: 30
+    vlan_name: ADMIN
