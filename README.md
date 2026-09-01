@@ -1,132 +1,100 @@
-# Network Automation Labs
+# Supervised Agentic NetOps
 
-Python scripts that automate the configuration, deployment, and verification of Cisco IOS network devices — built and tested against a multi-router BGP/OSPF lab topology using [Netmiko](https://github.com/ktbyers/netmiko).
+A Cisco lab that fixes itself — but only when you say so.
 
-Instead of manually console-ing into each router to configure interfaces, BGP neighbors, or OSPF areas, these scripts read a router's config from YAML and push it over SSH, then pull back verification output (`show ip bgp summary`, `show ip ospf neighbor`, etc.) to confirm it actually worked.
+This project automates a 4-router / 3-switch GNS3 lab (OSPF, BGP, VLANs) over SSH, watches it continuously for problems, and can repair them automatically. On top of that sits an MCP server, so instead of running scripts by hand you can just ask Claude Desktop: "is everything up?", "why does R1 keep dropping OSPF?", "go fix it."
 
-<br>
+# Why "supervised"
 
-## Architecture
+An agent that can both see problems and change device config is powerful — and a little dangerous if it acts on its own. So the two are kept deliberately separate:
 
-<!--
-  Drop your architecture screenshot in a folder like `docs/images/architecture.png`,
-  commit it, then point the line below at it. Relative paths work once the image
-  is committed to the repo.
--->
-![Architecture diagram](docs/images/architecture.png)
+Looking is always allowed. Checking interfaces, OSPF, BGP, or VLAN status never touches a device's config, so the agent (or you) can check as often as it wants.
+Fixing needs a yes. Every fix tool is wired up so the agent only re-applies config after you've actually asked it to — it won't quietly "fix" things in the background while it's just answering a status question.
+Fixes are rate-limited. A device that's allow-listed can only be auto-remediated a few times before the script gives up and says "this needs a human," so a flapping link can't turn into an infinite retry loop.
 
-<br>
+The screenshots further down show this in practice — the agent noticing a repeat failure and stopping to ask instead of patching it again.
 
-## Skills / Tech Stack
+#Architecture
+<img width="441" height="417" alt="image" src="https://github.com/user-attachments/assets/5f741a6e-44a4-4b14-9f46-8694f73adc34" />
+Config lives as data in the *_inventory.yaml files. The push scripts read it and configure the lab. Status checks read the devices back — read-only, safe to run constantly — and every result lands in network_log.jsonl and feeds mcp_server.py. Claude Desktop can call any check_* tool freely, but a fix_* tool only runs through remediate.py, and only once you've actually said to go ahead. watcher.py runs the same status checks
 
-<!--
-  Swap these for your own badges, or just paste a screenshot the same way as above:
-  ![Skills](docs/images/skills.png)
--->
-![Python](https://img.shields.io/badge/Python-3-3776AB?logo=python&logoColor=white)
-![Netmiko](https://img.shields.io/badge/Netmiko-SSH%20Automation-informational)
-![Cisco IOS](https://img.shields.io/badge/Cisco-IOS-1BA0D7?logo=cisco&logoColor=white)
-![BGP](https://img.shields.io/badge/Protocol-BGP-orange)
-![OSPF](https://img.shields.io/badge/Protocol-OSPF-orange)
-![YAML](https://img.shields.io/badge/Config-YAML-CB171E)
+# Lab Topology
+<img width="957" height="491" alt="image" src="https://github.com/user-attachments/assets/a782cb25-61e3-4bfb-a7e3-a9642e66e4cf" />
+How it works
+Layer	Files	What it does
+Push	ospf_push.py, bgp_push.py, vlan_push.py	Reads a *_inventory.yaml file and pushes interface + OSPF/BGP/VLAN config to every device in it. ospf_push.py works out the OSPF wildcard mask for you from the subnet mask. vlan_push.py asks for a yes/no before touching each switch.
+Status	interface.py, ospf_status.py, bgp_status.py, vlan_status.py	Connects to one device, runs a show command, and reports back ok, down, no_neighbors, or error. Read-only — safe to call constantly. Every result gets logged.
+Watch	watcher.py, check_all_devices.py	check_all_devices.py checks every device at once for a snapshot. watcher.py runs the same checks on a loop (interfaces every 15s, OSPF every 50s, BGP every 100s) and only raises a PROBLEM_CONFIRMED after two bad readings in a row — so one slow response doesn't trigger a false alarm.
+Remediate	remediate.py	Re-pushes known-good config to a specific device, then re-checks to confirm it actually worked. Locked down to an allow-list of devices, capped at 3 attempts, and won't retry the same device+problem within 5 minutes.
+Agent	mcp_server.py	Wraps all of the above as MCP tools — check_ospf, check_bgp, check_vlan, check_interface, check_all, read_recent_log are free to call anytime; fix_ospf, fix_bgp, fix_vlan are documented as "only call after the user has explicitly agreed" so the agent asks first.
 
-<br>
+logger.py is the thread running under everything — every check and every remediation attempt gets appended as one JSON line to network_log.jsonl, which the agent can also read back to answer "what's happened recently."
 
-## Why this exists
+# Tested in Claude Desktop
+<img width="1600" height="938" alt="image" src="https://github.com/user-attachments/assets/89b80a5a-80d1-4ff7-9819-d56a888c3620" />
 
-Manually configuring routing protocols across a multi-router lab is repetitive and error-prone — the same `interface` / `router bgp` / `neighbor` blocks, typed by hand, on every device. This project treats router configuration as data (YAML) instead of manual CLI steps, so a topology of 4+ routers can be brought up, verified, and torn down consistently and repeatably.
+Connected to the MCP server and asked it to check the lab. It calls check_all, and gives back a real status table:
 
-## What's in here
+A little later, I intentionally broke OSPF on R1 from the CLI and asked again. The agent doesn't just report "down" — it notices this is the third time R1's OSPF has dropped in the session, recognizes that's a pattern rather than a one-off, and stops to ask before doing anything:
+<img width="896" height="399" alt="image" src="https://github.com/user-attachments/assets/5bced46e-47f7-4b3e-9bd8-36c54a78fc33" />
 
-| Script | What it does |
-|---|---|
-| `bgp_multiple_int.py` | Reads `bgp_multiple_int.yaml`, configures interfaces + BGP (`router bgp`, neighbors) on every router in the file, then pulls `show ip bgp summary` to verify. |
-| `bgp_full_log.py` | Same as above, plus structured logging (`bgp_full_log.log`) of every connection, config push, and verification step — with per-router error handling so one failed device doesn't kill the run. |
-| `bgp_push.py` | Lighter-weight variant that pushes only BGP neighbor config (no interface config) from `bgp_push.yaml`. |
-| `bgp_neighbor_down.py` | Connects to a router, parses `show ip bgp summary`, and reports which BGP neighbors are **not** in an Established state (Idle/Active/Connect) — a quick health check. |
-| `ospf_mul.py` | Reads `ospf_mul.yaml`, configures interfaces + OSPF (including auto-calculating the wildcard mask from a subnet mask), then verifies via `show ip ospf neighbor`. |
-| `vlan_config.py` | Creates a VLAN, assigns it to an access port, saves the running config, and verifies with `show vlan brief` — across multiple switches. |
-| `interface.py` | Minimal example: connect to a device and pull `show ip int brief`. |
+When I told it to go ahead and fix R1's OSPF, it calls fix_ospf, confirms neighbors are back to FULL, and repeats the same warning — patching the symptom again won't fix a link that keeps flapping:
+<img width="900" height="356" alt="image" src="https://github.com/user-attachments/assets/a1bd621a-0cf7-407c-ba3d-8e6c81f3a8f5" />
 
-Each `*.yaml` file describes one lab topology as data: per-router device type, management IP, interfaces, IP addressing, and routing-protocol parameters (ASN/neighbors for BGP, process ID/router ID/area for OSPF).
-
-## Example: bringing up BGP across 4 routers
-
-```bash
-python bgp_full_log.py
-```
-
-```
-Connecting to the R1
-...
---- BGP Summary for R1 ---
-Neighbor        V    AS  MsgRcvd  MsgSent  ...  State/PfxRcd
-192.168.12.2    4   100      12       14   ...  1
-
-R1 Completed succesfully
-```
-
-Every run appends structured entries to `bgp_full_log.log`:
-
-```
-2026-06-09 21:03:49,981 - INFO - Authentication (password) successful!
-2026-06-09 21:03:50,684 - INFO - R1 - Configuration Apllied Successfully
-2026-06-09 21:03:50,792 - INFO - R1 - BGP verification succesfully completed
-```
-
-## Getting started
-
-```bash
+# Getting started
+bash
 python -m venv venv
 source venv/bin/activate
-pip install netmiko pyyaml
-```
+pip install netmiko pyyaml python-dotenv mcp
 
-Edit the relevant `*.yaml` file with your device details (the sample configs use placeholder credentials — do not commit real ones):
+Create a .env file (git-ignored, never commit real credentials):
 
-```yaml
+JHANSI_USERNAME=your_username
+JHANSI_PASSWORD=your_password
+JHANSI_SECRET=your_enable_secret
+
+Point the *_inventory.yaml files at your own lab. Example (ospf_inventory.yaml):
+
+yaml
 routers:
   R1:
     device_type: cisco_ios
     host: 192.168.160.132
-    username: your_username
-    password: your_password_here
-    secret: your_password_here
-    asn: 100
+    process_id: 110
+    router_id: 1.1.1.1
     interfaces:
       - name: g2/0
         ip: 192.168.12.1
         mask: 255.255.255.0
-    neighbors:
-      - ip: 192.168.12.2
-        remote_as: 100
-```
+        area: 0
+Usage
+bash
+# Push config
+python ospf_push.py           # OSPF + interfaces
+python bgp_push.py            # BGP + interfaces
+python vlan_push.py           # VLANs, confirms per switch
 
-Then run the script for the protocol you want:
+# One-shot health check
+python check_all_devices.py
 
-```bash
-python bgp_multiple_int.py    # BGP + interfaces
-python ospf_mul.py            # OSPF + interfaces
-python vlan_config.py         # VLAN provisioning
-python bgp_neighbor_down.py   # BGP health check
-```
+# Continuous monitoring
+python watcher.py
 
-> **Security note:** these scripts read credentials from YAML for lab simplicity. For anything beyond a local lab, swap the hardcoded YAML fields for environment variables or a secrets manager before running against real infrastructure.
+# Start the MCP server so Claude Desktop (or any MCP client) can use it
+python mcp_server.py
+Point Claude Desktop at mcp_server.py as a local MCP server, then just ask it things like "are all my devices up?" or "fix R1's OSPF.
 
-## Lab environment
+# Security note
 
-Built and tested against Cisco IOS routers/switches in a virtual lab (GNS3/EVE-NG style topology, RFC1918 addressing). Devices connect over SSH via Netmiko's `cisco_ios` driver.
+Credentials load from .env via python-dotenv and are never hardcoded in the YAML; .env is git-ignored. This is still built for an isolated lab, though — before running anything like it against real infrastructure, move device inventories out of plaintext YAML and into a proper secrets manager, and add a reachability check before any push.
 
-## Stack
+# Roadmap ideas
+Reachability pre-check before every config push
+Slack/webhook alerting from watcher.py on PROBLEM_CONFIRMED
+Root-cause diagnostics for repeat failures (the agent already flags them — teach remediate.py to investigate, not just re-push)
+Unit tests around the OSPF wildcard-mask math and BGP-state parsing
 
-- **Python 3**
-- **[Netmiko](https://github.com/ktbyers/netmiko)** — SSH connection handling to network devices
-- **PyYAML** — topology/config-as-data
-- **logging** — structured run logs for auditability
 
-## Roadmap ideas
 
-- Move credentials to environment variables / a `.env` file
-- Add pre-checks (ping/reachability) before pushing config
-- Extend `bgp_neighbor_down.py` into a standalone monitoring script with alerting
-- Add unit tests around the wildcard-mask and BGP-state-parsing logic
+on a loop in the background and only raises an alert once a problem shows up twice in a row.
+
